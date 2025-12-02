@@ -1,0 +1,34 @@
+services:
+  app:
+    container_name: doco-cd
+    image: dococd:latest
+    restart: unless-stopped
+    ports:
+      - "8887:8887" # webhooks, API requests and healthchecks
+      - "9120:9120" # Prometheus metrics
+      - "40000:40000" # Prometheus metrics
+    security_opt:
+      - "seccomp:unconfined"
+    cap_add:
+      - SYS_PTRACE
+    env_file:
+      - .env
+    secrets:
+      - source: docker-config
+        target: /root/.docker/config.json
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - data:/data
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/v1/health" ]  # Also change the port here if you change the default HTTP_PORT env var
+      start_period: 15s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+secrets:
+  docker-config:
+    file: docker-config.json
+
+volumes:
+  data:
